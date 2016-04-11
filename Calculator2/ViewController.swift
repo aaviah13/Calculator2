@@ -11,20 +11,42 @@ import UIKit
 class ViewController: UIViewController {
 
    @IBOutlet weak var display: UILabel!
+   @IBOutlet weak var commandHistory: UILabel!
 
    var userIsInTheMiddleOfTypingANumber = false
 
+   // Indicates if a decimal is already used
+   var isDecimalSpecified = false
+   
    @IBAction func appendDigit(sender: UIButton) {
-       let digit = sender.currentTitle!
+      let digit = sender.currentTitle!
 
       if userIsInTheMiddleOfTypingANumber {
 
-         // Append display with a pressed digit
-         display.text = display.text! + digit
+         if ( digit != "." || ( digit == "." && !isDecimalSpecified ) ) {
+
+            // Append display with a pressed digit
+            display.text = display.text! + digit
+
+            // Decimal was appended, don't append any other decimals:
+            if digit == "." {
+               isDecimalSpecified = true
+            }
+         }
 
       }
+
       else {
-         display.text = digit
+
+         // Preserve 0 if typing a decimal:
+         if digit == "." {
+            display.text = "0" + digit
+            isDecimalSpecified = true
+         }
+         else {
+            display.text = digit
+         }
+
          userIsInTheMiddleOfTypingANumber = true
       }
 
@@ -46,8 +68,15 @@ class ViewController: UIViewController {
       case "+": performOperation { $0 + $1 }
       case "−": performOperation { $1 - $0 }
       case "√": performOperation { sqrt($0) }
+      case "sin()": performOperation { sin($0) }
+      case "cos()": performOperation { cos($0) }
+      case "π": addConstantToStack(M_PI)
       default: break
       }
+
+      // Save to the command history
+      commandHistory.sizeToFit()
+      commandHistory.text = commandHistory.text! + "\n\(operation)"
    }
 
    func performOperation(operation: (Double, Double) -> Double) {
@@ -67,9 +96,34 @@ class ViewController: UIViewController {
       }
    }
 
-   @IBAction func enter() {
+   func addConstantToStack(constant: Double) {
+      displayValue = constant
+      enter()
+   }
+
+   @IBAction func clear() {
+      display.text = "0"
+      operandStack.removeAll()
+      commandHistory.text = ""
       userIsInTheMiddleOfTypingANumber = false
+      isDecimalSpecified = false
+   }
+
+   @IBAction func enter() {
+
+      if userIsInTheMiddleOfTypingANumber {
+
+         // Save to the command history
+         commandHistory.sizeToFit()
+         commandHistory.text = commandHistory.text! + "\n\(display.text!)"
+
+      }
+
+      userIsInTheMiddleOfTypingANumber = false
+      isDecimalSpecified = false
       operandStack.append(displayValue)
+
+
       print("Operand = \(operandStack)")
    }
 
